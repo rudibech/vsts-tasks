@@ -1,37 +1,33 @@
 # Universal Windows Platform
-# Build Universal Windows Platform applications using Visual Studio.
+# Build a Universal Windows Platform application using Visual Studio.
 # https://aka.ms/yaml
 
 queue: 'Hosted VS2017'
-
 variables:
-  appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\'
-  buildConfiguration: 'Release'
-  buildPlatform: 'x86|x64|ARM'
   solution: '**/*.sln'
-  # system.debug: 'true'
-
+  buildPlatform: 'x86|x64|ARM'
+  buildConfiguration: 'Release'
+  appxPackageDir: '$(build.artifactStagingDirectory)\AppxPackages\'
 steps:
+
 - task: NuGetToolInstaller@0
-  displayName: 'Install NuGet'
 
 - task: NuGetCommand@2
-  displayName: 'Restore NuGet packages'
   inputs:
     restoreSolution: '$(solution)'
 
 - task: VSBuild@1
-  displayName: 'Build solution'
   inputs:
-    solution: '$(solution)'
-    vsVersion: '15.0'
-    msbuildArgs: '/p:AppxBundlePlatforms="$(buildPlatform)" /p:AppxPackageDir="$(appxPackageDir)" /p:AppxBundle=Always /p:UapAppxPackageBuildMode=StoreUpload'
     platform: 'x86'
+    solution: '$(solution)'
     configuration: '$(buildConfiguration)'
+    msbuildArgs: '/p:AppxBundlePlatforms="$(buildPlatform)" /p:AppxPackageDir="$(appxPackageDir)" /p:AppxBundle=Always /p:UapAppxPackageBuildMode=StoreUpload'
 
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish artifacts'
-  inputs:
-    pathToPublish: '$(appxPackageDir)'
-    artifactName: 'artifact'
-    artifactType: 'container'
+#- task: PublishBuildArtifacts@1
+#  inputs:
+#    pathToPublish: '$(appxPackageDir)'
+
+# Next steps:
+# Test apps on real devices with the App Center Test task: https://docs.microsoft.com/vsts/build-release/tasks/test/appcentertest
+# Distribute apps to testers and users with the App Center Distribute task: https://docs.microsoft.com/vsts/build-release/tasks/deploy/appcenterdistribute
+# Release to the Windows Store with the Windows Store extension: https://marketplace.visualstudio.com/items?itemName=MS-RDX-MRO.windows-store-publish

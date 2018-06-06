@@ -21,15 +21,21 @@ export class KuduServiceManagementClient {
         request.headers = request.headers || {};
         request.headers["Authorization"] = "Basic " + this._accesssToken;
         request.headers['Content-Type'] = 'application/json; charset=utf-8';
-        var options: webClient.WebRequestOptions = {
-            retryIntervalInSeconds: reqOptions && reqOptions.retryIntervalInSeconds ? reqOptions.retryIntervalInSeconds :  10,
-            retryCount: reqOptions && reqOptions.retryCount ? reqOptions.retryCount : 6,
-            retriableErrorCodes: reqOptions && reqOptions.retriableErrorCodes ? reqOptions.retriableErrorCodes : ["ETIMEDOUT"],
-            retriableStatusCodes: reqOptions && reqOptions.retriableStatusCodes ? reqOptions.retriableStatusCodes :  [409, 500, 502, 503, 504]
-        };
         
-        var httpResponse = webClient.sendRequest(request, options);
-        return httpResponse;
+        try {
+            let httpResponse = await webClient.sendRequest(request, reqOptions);
+            return httpResponse;
+        }
+        catch(exception) {
+            let exceptionString: string = exception.toString();
+            if(exceptionString.indexOf("Hostname/IP doesn't match certificates's altnames") != -1
+                || exceptionString.indexOf("unable to verify the first certificate") != -1) {
+                tl.warning(tl.loc('ASE_SSLIssueRecommendation'));
+            }
+
+            throw new Error(exceptionString);
+        }
+
     }
 
     public getRequestUri(uriFormat: string, queryParameters?: Array<string>) {
@@ -72,7 +78,7 @@ export class Kudu {
             throw response;
         }
         catch(error) {
-            throw Error(tl.loc('FailedToUpdateDeploymentHistory', this._getFormattedError(error)));
+            throw Error(tl.loc('Failedtoupdatedeploymenthistory', this._getFormattedError(error)));
         }
     }
 
@@ -160,7 +166,7 @@ export class Kudu {
     public async getSiteExtensions(): Promise<Array<SiteExtension>> {
         var httpRequest = new webClient.WebRequest();
         httpRequest.method = 'GET';
-        httpRequest.uri = this._client.getRequestUri(`/api/siteextensions`);
+        httpRequest.uri = this._client.getRequestUri(`/api/siteextensions`, ['checkLatest=false']);
         try {
             var response = await this._client.beginRequest(httpRequest);
             tl.debug(`getSiteExtensions. Data: ${JSON.stringify(response)}`);
@@ -172,6 +178,24 @@ export class Kudu {
         }
         catch(error) {
             throw Error(tl.loc('FailedToGetSiteExtensions', this._getFormattedError(error)))
+        }
+    }
+
+    public async getAllSiteExtensions(): Promise<Array<SiteExtension>> {
+        var httpRequest = new webClient.WebRequest();
+        httpRequest.method = 'GET';
+        httpRequest.uri = this._client.getRequestUri(`/api/extensionfeed`);
+        try {
+            var response = await this._client.beginRequest(httpRequest);
+            tl.debug(`getAllSiteExtensions. Data: ${JSON.stringify(response)}`);
+            if(response.statusCode == 200) {
+                return response.body as Array<SiteExtension>;
+            }
+
+            throw response;
+        }
+        catch(error) {
+            throw Error(tl.loc('FailedToGetAllSiteExtensions', this._getFormattedError(error)))
         }
     }
 
